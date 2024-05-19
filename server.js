@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
-const crypto = require('crypto');
+const cheerio = require('cheerio');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -15,57 +15,51 @@ app.use((req, res, next) => {
     next();
 });
 
-// Codeforces API credentials
-const apiKey = '3c97906f0cf30e31a94c9018addc4eecd2ebf690';
-const apiSecret = 'b0c12b48a8db54aeae1043466eb0270aba782867';
-
-// Function to generate API signature
-function generateApiSig(methodName, params, timestamp) {
-    const sortedParams = Object.entries(params)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-    const rand = crypto.randomBytes(6).toString('hex');
-    const preHashString = `${rand}/${methodName}?${sortedParams}&time=${timestamp}#${apiSecret}`;
-    const hash = crypto.createHash('sha512').update(preHashString).digest('hex');
-    const apiSig = rand + hash;
-    return apiSig;
-}
-
 // Endpoint to handle submission
 app.post('/submit', async (req, res) => {
     const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent, contestId } = req.body;
 
     try {
-        // Generate timestamp here
-        const timestamp = Math.floor(Date.now() / 1000);
+        // Step 1: Log in to Codeforces to get the CSRF token and cookies
+        const loginResponse = await axios.get('https://codeforces.com/enter');
+        const $ = cheerio.load(loginResponse.data);
+        const csrfToken = $('meta[name="X-Csrf-Token"]').attr('content');
+        
+        if (!csrfToken) {
+            throw new Error('Unable to retrieve CSRF token');
+        }
 
-        // Generate API signature
-        const apiSig = generateApiSig('contest.submit', {
-            apiKey,
-            contestId,
-            problemIndex,
-            programTypeId,
-            source: sourceFileContent
-        }, timestamp);
+        const cookies = loginResponse.headers['set-cookie'].join('; ');
 
-        // Submit the solution
-        const response = await axios.post('https://codeforces.com/api/contest.submit', null, {
-            params: {
-                apiKey,
-                contestId,
-                problemIndex,
-                programTypeId,
-                source: sourceFileContent,
-                time: timestamp,
-                apiSig
+        // Step 2: Authenticate the user
+        await axios.post('https://codeforces.com/enter', {
+            handleOrEmail,
+            password,
+            csrf_token: csrfToken
+        }, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Cookie': cookies
             }
         });
 
-        if (response.data.status === 'OK') {
+        // Step 3: Submit the solution
+        const submitResponse = await axios.post(`https://codeforces.com/contest/${contestId}/submit`, {
+            csrf_token: csrfToken,
+            submittedProblemIndex: problemIndex,
+            programTypeId: programTypeId,
+            source: sourceFileContent
+        }, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Cookie': cookies
+            }
+        });
+
+        if (submitResponse.status === 200) {
             res.send('Submission successful!');
         } else {
-            res.status(400).send(`Submission failed: ${response.data.comment}`);
+            res.status(400).send('Submission failed');
         }
     } catch (error) {
         console.error('Error:', error.response ? error.response.data : error.message);
