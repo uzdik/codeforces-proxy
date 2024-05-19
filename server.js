@@ -28,7 +28,7 @@ function generateApiSig(methodName, params, timestamp) {
     const rand = crypto.randomBytes(6).toString('hex');
     const preHashString = `${rand}/${methodName}?${sortedParams}&time=${timestamp}#${apiSecret}`;
     const hash = crypto.createHash('sha512').update(preHashString).digest('hex');
-    const apiSig = rand + hash.substring(0, 128);
+    const apiSig = rand + hash;
     return apiSig;
 }
 
@@ -62,10 +62,10 @@ app.post('/submit', async (req, res) => {
             }
         });
 
-        if (response.status === 200) {
+        if (response.data.status === 'OK') {
             res.send('Submission successful!');
         } else {
-            res.status(400).send('Submission failed');
+            res.status(400).send(`Submission failed: ${response.data.comment}`);
         }
     } catch (error) {
         console.error('Error:', error.response ? error.response.data : error.message);
