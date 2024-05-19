@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 
 // Enable CORS middleware
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://uzdik.github.io/esepter/3'); // Replace with your GitHub Pages URL
+    res.setHeader('Access-Control-Allow-Origin', 'https://uzdik.github.io');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     next();
