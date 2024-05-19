@@ -34,9 +34,10 @@ function generateApiSig(methodName, params) {
     return { timestamp, apiSig };
 }
 
-// Endpoint to handle submission
 app.post('/submit', async (req, res) => {
     const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent, contestId } = req.body;
+    
+    console.log('Received contestId:', contestId); // Add this line for logging
 
     try {
         // Generate API signature
