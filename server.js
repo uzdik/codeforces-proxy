@@ -22,11 +22,11 @@ const apiSecret = 'b0c12b48a8db54aeae1043466eb0270aba782867';
 
 // Function to generate API signature
 function generateApiSig(methodName, params) {
+    const timestamp = Math.floor(Date.now() / 1000); // Generate timestamp here
     const sortedParams = Object.entries(params)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
         .join('&');
-    const timestamp = Math.floor(Date.now() / 1000);
     const rand = crypto.randomBytes(6).toString('hex');
     const preHashString = `${rand}/${methodName}?${sortedParams}#${apiSecret}`;
     const hash = crypto.createHash('sha512').update(preHashString).digest('hex');
@@ -39,11 +39,9 @@ app.post('/submit', async (req, res) => {
     const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent } = req.body;
 
     try {
-        // Step 1: Log in to Codeforces (if needed)
-        // Step 2: Submit the solution
+        // Generate API signature
         const { timestamp, apiSig } = generateApiSig('contest.hacks', {
             apiKey,
-            time: timestamp,
             handleOrEmail,
             password,
             problemIndex,
@@ -51,6 +49,7 @@ app.post('/submit', async (req, res) => {
             sourceFileContent
         });
 
+        // Submit the solution
         const response = await axios.post('https://codeforces.com/api/contest.hacks', {
             apiKey,
             time: timestamp,
