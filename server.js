@@ -1,13 +1,26 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer');
+const cors = require('cors'); // Import cors
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const puppeteer = require('puppeteer-core');
+
+const browser = await puppeteer.launch({ 
+  headless: true,
+  executablePath: await puppeteer.executablePath()
+});
+
+
 // Middleware
+app.use(cors({
+  origin: 'https://uzdik.github.io'
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
 
 // Routes
 app.post('/submit-code', async (req, res) => {
