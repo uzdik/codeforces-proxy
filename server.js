@@ -40,6 +40,9 @@ app.post('/submit', async (req, res) => {
     console.log('Received contestId:', contestId); // Add this line for logging
 
     try {
+        // Parse contestId as integer
+        const contestIdInt = parseInt(contestId);
+
         // Generate API signature
         const { timestamp, apiSig } = generateApiSig('contest.hacks', {
             apiKey,
@@ -48,7 +51,7 @@ app.post('/submit', async (req, res) => {
             problemIndex,
             programTypeId,
             sourceFileContent,
-            contestId // Add contestId parameter
+            contestId: contestIdInt // Use the parsed integer value
         });
 
         // Submit the solution
@@ -61,7 +64,7 @@ app.post('/submit', async (req, res) => {
             programTypeId,
             sourceFileContent,
             apiSig,
-            contestId // Add contestId parameter
+            contestId: contestIdInt // Use the parsed integer value
         });
 
         if (response.status === 200) {
@@ -74,6 +77,7 @@ app.post('/submit', async (req, res) => {
         res.status(500).send('Server error');
     }
 });
+
 
 
 const PORT = process.env.PORT || 10000;
