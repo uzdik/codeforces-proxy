@@ -34,8 +34,9 @@ app.post('/submit', async (req, res) => {
 
         // Generate apiSig using SHA-512 hash
         const params = `apiKey=${apiKey}&time=${time}`;
-        const paramString = `/${rand}/contest.hacks?${params}#${apiSecret}`;
-        const apiSig = rand + crypto.createHash('sha512').update(paramString).digest('hex');
+	const paramString = `/${rand}/contest.hacks?${params}#${apiSecret}`;
+	const apiSig = rand + crypto.createHash('sha512').update(paramString).digest('hex');
+
 
         // Submit the solution using API key and signature
         const submitData = new FormData();
