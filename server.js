@@ -36,7 +36,7 @@ function generateApiSig(methodName, params) {
 
 // Endpoint to handle submission
 app.post('/submit', async (req, res) => {
-    const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent } = req.body;
+    const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent, contestId } = req.body;
 
     try {
         // Generate API signature
@@ -46,7 +46,8 @@ app.post('/submit', async (req, res) => {
             password,
             problemIndex,
             programTypeId,
-            sourceFileContent
+            sourceFileContent,
+            contestId // Add contestId parameter
         });
 
         // Submit the solution
@@ -58,7 +59,8 @@ app.post('/submit', async (req, res) => {
             problemIndex,
             programTypeId,
             sourceFileContent,
-            apiSig
+            apiSig,
+            contestId // Add contestId parameter
         });
 
         if (response.status === 200) {
@@ -71,6 +73,7 @@ app.post('/submit', async (req, res) => {
         res.status(500).send('Server error');
     }
 });
+
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
