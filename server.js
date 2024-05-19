@@ -34,15 +34,11 @@ function generateApiSig(methodName, params) {
     return { timestamp, apiSig };
 }
 
+// Endpoint to handle submission
 app.post('/submit', async (req, res) => {
     const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent, contestId } = req.body;
-    
-    console.log('Received contestId:', contestId); // Add this line for logging
 
     try {
-        // Parse contestId as integer
-        const contestIdInt = parseInt(contestId);
-
         // Generate API signature
         const { timestamp, apiSig } = generateApiSig('contest.hacks', {
             apiKey,
@@ -51,7 +47,7 @@ app.post('/submit', async (req, res) => {
             problemIndex,
             programTypeId,
             sourceFileContent,
-            contestId: contestIdInt // Use the parsed integer value
+            contestId // Add contestId parameter
         });
 
         // Submit the solution
@@ -64,7 +60,7 @@ app.post('/submit', async (req, res) => {
             programTypeId,
             sourceFileContent,
             apiSig,
-            contestId: contestIdInt // Use the parsed integer value
+            contestId // Add contestId parameter
         });
 
         if (response.status === 200) {
@@ -77,7 +73,6 @@ app.post('/submit', async (req, res) => {
         res.status(500).send('Server error');
     }
 });
-
 
 
 const PORT = process.env.PORT || 10000;
