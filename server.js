@@ -1,29 +1,38 @@
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
-const qs = require('querystring');
+const cheerio = require('cheerio');
+const FormData = require('form-data');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// Enable CORS middleware
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://uzdik.github.io');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
+
 const CODEFORCES_LOGIN_URL = 'https://codeforces.com/enter';
 const CODEFORCES_SUBMIT_URL = 'https://codeforces.com/gym/515622/submit';
 
-// Endpoint to handle submission
 app.post('/submit', async (req, res) => {
-    const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent } = req.body;
+    const { handleOrEmail, password, problemIndex, programTypeId, contestID, sourceFileContent } = req.body;
 
     try {
         // Step 1: Log in to Codeforces
         let response = await axios.get(CODEFORCES_LOGIN_URL, { withCredentials: true });
         const cookies = response.headers['set-cookie'].join('; ');
 
-        const csrfToken = response.data.match(/name="csrf_token" value="(.*?)"/)[1];
-        const ftaa = response.data.match(/name="ftaa" value="(.*?)"/)[1];
-        const bfaa = response.data.match(/name="bfaa" value="(.*?)"/)[1];
+        const $ = cheerio.load(response.data);
+        const csrfToken = $('input[name="csrf_token"]').val();
+        const ftaa = $('input[name="ftaa"]').val();
+        const bfaa = $('input[name="bfaa"]').val();
 
-        const loginData = qs.stringify({
+        const loginData = new URLSearchParams({
             handleOrEmail,
             password,
             csrf_token: csrfToken,
@@ -50,7 +59,7 @@ app.post('/submit', async (req, res) => {
         submitData.append('action', 'submitSolutionFormSubmitted');
         submitData.append('submittedProblemIndex', problemIndex);
         submitData.append('programTypeId', programTypeId);
-        submitData.append('sourceFile', sourceFileContent);
+        submitData.append('sourceFile', sourceFileContent, { filename: 'solution.txt' });
 
         response = await axios.post(CODEFORCES_SUBMIT_URL, submitData, {
             headers: {
