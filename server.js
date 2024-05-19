@@ -20,17 +20,16 @@ const apiKey = '3c97906f0cf30e31a94c9018addc4eecd2ebf690';
 const apiSecret = 'b0c12b48a8db54aeae1043466eb0270aba782867';
 
 // Function to generate API signature
-function generateApiSig(methodName, params) {
-    const timestamp = Math.floor(Date.now() / 1000); // Generate timestamp here
+function generateApiSig(methodName, params, timestamp) {
     const sortedParams = Object.entries(params)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
         .join('&');
     const rand = crypto.randomBytes(6).toString('hex');
-    const preHashString = `${rand}/${methodName}?${sortedParams}#${apiSecret}`;
+    const preHashString = `${rand}/${methodName}?${sortedParams}&time=${timestamp}#${apiSecret}`;
     const hash = crypto.createHash('sha512').update(preHashString).digest('hex');
     const apiSig = rand + hash.substring(0, 128);
-    return { timestamp, apiSig };
+    return apiSig;
 }
 
 // Endpoint to handle submission
@@ -38,15 +37,17 @@ app.post('/submit', async (req, res) => {
     const { handleOrEmail, password, problemIndex, programTypeId, sourceFileContent, contestId } = req.body;
 
     try {
+        // Generate timestamp here
+        const timestamp = Math.floor(Date.now() / 1000);
+
         // Generate API signature
-        const { timestamp, apiSig } = generateApiSig('contest.submit', {
+        const apiSig = generateApiSig('contest.submit', {
             apiKey,
             contestId,
             problemIndex,
             programTypeId,
-            source: sourceFileContent,
-            time: timestamp
-        });
+            source: sourceFileContent
+        }, timestamp);
 
         // Submit the solution
         const response = await axios.post('https://codeforces.com/api/contest.submit', null, {
