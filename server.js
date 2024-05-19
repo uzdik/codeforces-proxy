@@ -1,70 +1,58 @@
 const express = require('express');
-const axios = require('axios');
 const bodyParser = require('body-parser');
-const crypto = require('crypto');
-const FormData = require('form-data');
+const puppeteer = require('puppeteer');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Enable CORS middleware
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://uzdik.github.io');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    next();
-});
-
-// Codeforces API credentials
-const apiKey = '3c97906f0cf30e31a94c9018addc4eecd2ebf690';
-const apiSecret = 'b0c12b48a8db54aeae1043466eb0270aba782867';
-
-const CODEFORCES_SUBMIT_URL = 'https://codeforces.com/gym/515622/submit';
-
-app.post('/submit', async (req, res) => {
-    const { problemIndex, programTypeId, sourceFileContent } = req.body;
+// Routes
+app.post('/submit-code', async (req, res) => {
+    const { username, password, problemUrl, code } = req.body;
 
     try {
-        // Generate time in unix format
-        const time = Math.floor(Date.now() / 1000);
+        // Launch Puppeteer browser
+        const browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
 
-        // Generate random string for apiSig
-        const rand = Math.random().toString(36).substring(2, 8);
+        // Navigate to Codeforces login page
+        await page.goto('https://codeforces.com/enter');
 
-        // Generate apiSig using SHA-512 hash
-        const params = `apiKey=${apiKey}&time=${time}`;
-	const paramString = `/${rand}/contest.hacks?${params}#${apiSecret}`;
-	const apiSig = rand + crypto.createHash('sha512').update(paramString).digest('hex');
+        // Login to Codeforces
+        await page.type('#handleOrEmail', username);
+        await page.type('#password', password);
+        await page.click('.submit');
 
+        // Wait for login success
+        await page.waitForNavigation();
 
-        // Submit the solution using API key and signature
-        const submitData = new FormData();
-        submitData.append('apiKey', apiKey);
-        submitData.append('time', time);
-        submitData.append('apiSig', apiSig);
-        submitData.append('submittedProblemIndex', problemIndex);
-        submitData.append('programTypeId', programTypeId);
-        submitData.append('sourceFile', sourceFileContent, { filename: 'solution.txt' });
+        // Navigate to problem URL
+        await page.goto(problemUrl);
 
-        const response = await axios.post(CODEFORCES_SUBMIT_URL, submitData, {
-            headers: {
-                ...submitData.getHeaders(),
-            },
-        });
+        // Paste code into submission form
+        await page.type('textarea#sourceCodeTextarea', code);
 
-        if (response.status === 200) {
-            res.send('Submission successful!');
-        } else {
-            res.status(400).send('Submission failed');
-        }
+        // Submit code
+        await page.click('input[value="Submit"]');
+
+        // Wait for submission result
+        await page.waitForNavigation();
+
+        // Close browser
+        await browser.close();
+
+        // Send response
+        res.status(200).send('Code submitted successfully!');
     } catch (error) {
-        console.error('Error submitting solution:', error);
-        res.status(500).send('Server error');
+        console.error(error);
+        res.status(500).send('Error submitting code.');
     }
 });
 
-const PORT = process.env.PORT || 3000;
+// Start server
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
