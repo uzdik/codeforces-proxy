@@ -1,7 +1,6 @@
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
-const qs = require('querystring');
 const crypto = require('crypto');
 
 const app = express();
@@ -40,27 +39,26 @@ app.post('/submit', async (req, res) => {
 
     try {
         // Generate API signature
-        const { timestamp, apiSig } = generateApiSig('contest.hacks', {
+        const { timestamp, apiSig } = generateApiSig('contest.submit', {
             apiKey,
-            handleOrEmail,
-            password,
+            contestId,
             problemIndex,
             programTypeId,
-            sourceFileContent,
-            contestId // Add contestId parameter
+            source: sourceFileContent,
+            time: timestamp
         });
 
         // Submit the solution
-        const response = await axios.post('https://codeforces.com/api/contest.hacks', {
-            apiKey,
-            time: timestamp,
-            handleOrEmail,
-            password,
-            problemIndex,
-            programTypeId,
-            sourceFileContent,
-            apiSig,
-            contestId // Add contestId parameter
+        const response = await axios.post('https://codeforces.com/api/contest.submit', null, {
+            params: {
+                apiKey,
+                contestId,
+                problemIndex,
+                programTypeId,
+                source: sourceFileContent,
+                time: timestamp,
+                apiSig
+            }
         });
 
         if (response.status === 200) {
@@ -69,11 +67,10 @@ app.post('/submit', async (req, res) => {
             res.status(400).send('Submission failed');
         }
     } catch (error) {
-        console.error('Error:', error.response.data);
+        console.error('Error:', error.response ? error.response.data : error.message);
         res.status(500).send('Server error');
     }
 });
-
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
