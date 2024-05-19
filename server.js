@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 const apiKey = '3c97906f0cf30e31a94c9018addc4eecd2ebf690';
 const apiSecret = 'b0c12b48a8db54aeae1043466eb0270aba782867';
 
-const CODEFORCES_SUBMIT_URL = 'https://codeforces.com/api/contest.hacks';
+const CODEFORCES_SUBMIT_URL = 'https://codeforces.com/gym/515622/submit';
 
 app.post('/submit', async (req, res) => {
     const { problemIndex, programTypeId, sourceFileContent } = req.body;
